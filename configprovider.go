@@ -1,7 +1,11 @@
 package main
 
-import "os"
+import (
+	"os"
+	"strings"
+)
 
+// ConfigProviderSetup contains key-value settings for the configuration storage backend
 type ConfigProviderSetup map[string]string
 
 // ConfigProvider describes a configuration storage backend
@@ -25,13 +29,23 @@ type ConfigProvider interface {
 	Sync() error
 }
 
-func getConfigProviderByName(n string) (p ConfigProvider) {
-
-	switch n {
+func getConfigProvider(t string) (p ConfigProvider) {
+	setup := ConfigProviderSetup{}
+	args := strings.Split(t, `;`)
+	for _, arg := range args[1:] {
+		kv := strings.SplitN(arg, `=`, 2)
+		if len(kv) == 2 {
+			setup[kv[0]] = kv[1]
+		} else {
+			delete(setup, kv[0])
+		}
+	}
+	switch args[0] {
 	case "mem":
 		p = &ConfigProviderMemory{}
-		p.Init(ConfigProviderSetup{})
+		p.Init(setup)
 	}
+
 	return
 }
 
@@ -43,7 +57,7 @@ func senseConfigProviderArgument() ConfigProvider {
 func senseConfigProviderEnvironment() ConfigProvider {
 	cpenv, ok := os.LookupEnv("TANGOCONF")
 	if ok {
-		return getConfigProviderByName(cpenv)
+		return getConfigProvider(cpenv)
 	}
 	return nil
 }
@@ -55,6 +69,7 @@ func senseConfigProviderBoot() ConfigProvider {
 
 func senseConfigProviderFS() ConfigProvider {
 	// detect a sentinel file in our current working directory or (if Linux) in /
+
 	return nil
 }
 
@@ -73,7 +88,7 @@ func DefaultConfigProvider() ConfigProvider {
 	}
 	if p == nil {
 		emitWarning("Unable to determine a configuration backend, using an in-memory store. All changes will be lost.")
-		p = getConfigProviderByName("mem")
+		p = getConfigProvider("mem;demo=1")
 	}
 	return p
 }
