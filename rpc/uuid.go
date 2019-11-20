@@ -25,9 +25,19 @@ func NewUUID() *UUID {
 	return &u
 }
 
+// ZeroUUID returns a zero-value UUID, or a "null" UUID.
+func ZeroUUID() *UUID {
+	return new(UUID)
+}
+
 // EqualTo returns true if the UUID c is bit-for-bit identical to the UUID u.
 func (u *UUID) EqualTo(c *UUID) bool {
 	return (bytes.Equal(u[:], c[:]))
+}
+
+// IsZero returns true if the UUID is all zeroes.
+func (u *UUID) IsZero() bool {
+	return u.EqualTo(ZeroUUID())
 }
 
 func (u *UUID) String() string {

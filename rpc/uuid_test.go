@@ -15,11 +15,39 @@ func TestUUIDNoDuplicates(t *testing.T) {
 	}
 }
 
+func TestUUIDZeroEqual(t *testing.T) {
+	a := rpc.ZeroUUID()
+	b := rpc.ZeroUUID()
+
+	if !a.EqualTo(b) {
+		t.Error("Generated zero UUIDs were not equal")
+	}
+}
+
+func TestUUIDZeroMarshalRoundtrip(t *testing.T) {
+	a := rpc.ZeroUUID()
+	if !a.IsZero() {
+		t.Errorf("a.IsZero() returned false")
+	}
+	buf, err := a.MarshalText()
+	if err != nil {
+		t.Errorf("Failed to marshal zero UUID: %v", err)
+	}
+	b := new(rpc.UUID)
+	err = b.UnmarshalText(buf)
+	if err != nil {
+		t.Errorf("Failed to unmarshal zero UUID: %v", err)
+	}
+	if !b.IsZero() {
+		t.Errorf("b.IsZero() returned false")
+	}
+}
+
 func TestUUIDMarshalRoundtrip(t *testing.T) {
 	a := rpc.NewUUID()
 	buf, err := a.MarshalText()
 	if err != nil {
-		t.Errorf("Failed to generate UUID: %v", err)
+		t.Errorf("Failed to marshal UUID: %v", err)
 	}
 	b := new(rpc.UUID)
 	err = b.UnmarshalText(buf)
