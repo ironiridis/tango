@@ -16,11 +16,15 @@ type Handle struct {
 	err error
 }
 
+type M interface {
+	T() string
+}
+
 // HandleNotReady is returned when a Handle is used in an invalid state, such as before
 // it has been created with NewHandle() or after a call to h.Stop().
 const HandleNotReady = Error("Handle not ready")
 
-// NewHandle returns a Handle initialized with the stdin and stdout of a process.
+// NewHandle returns a Handle initialized with the the Reader and Writer for a process.
 func NewHandle(w io.WriteCloser, r io.ReadCloser) *Handle {
 	h := new(Handle)
 	h.r = r
@@ -41,9 +45,9 @@ func (h *Handle) Err() error {
 	return e
 }
 
-// Send encodes a value `v` and writes the JSON encoded form to stdin of the
-// receiving process. Send is safe to use from multiple goroutines.
-func (h *Handle) Send(v *Message) error {
+// SendRaw takes a value `v` and writes the JSON encoded form to stdin of the
+// receiving process. SendRaw is safe to use from multiple goroutines.
+func (h *Handle) SendRaw(v *Message) error {
 	h.Lock()
 	defer h.Unlock()
 
@@ -55,6 +59,20 @@ func (h *Handle) Send(v *Message) error {
 	}
 
 	return h.e.Encode(*v)
+}
+
+// Send wraps an arbitrary value into a Message with metadata.
+func (h *Handle) Send(z M, optional bool) error {
+	js, err := json.Marshal(z)
+	if err != nil {
+		return err
+	}
+
+	var m Message
+	m.T = z.T()
+	m.Optional = optional
+	m.M = json.RawMessage(js)
+	return h.SendRaw(&m)
 }
 
 func (h *Handle) reader() {
